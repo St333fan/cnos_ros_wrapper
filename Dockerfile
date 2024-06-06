@@ -55,8 +55,7 @@ RUN python3 -m pip install \
     ultralytics==8.0.135 \
     gdown \
     unzip \
-    scikit-image \
-    cv_bridge
+    scikit-image
 
 ###
 # Install ros
@@ -115,7 +114,8 @@ RUN apt-get update \
 
 WORKDIR /code
 
-COPY ros_entrypoint.sh /
-RUN chmod +x /ros_entrypoint.sh
-ENTRYPOINT ["/ros_entrypoint.sh"]
-#CMD ["python", "/code/zs6d_ros_wrapper.py"]
+
+CMD ["/bin/bash", "-c", "source ros_entrypoint.sh && \
+    python cnos_ros_wrapper.py dataset_name=ycbv model=cnos_fast model.onboarding_config.rendering_type=pyrender"]
+
+
