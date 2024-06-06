@@ -1,1 +1,2 @@
 python -m src.scripts.inference_custom --template_dir $OUTPUT_DIR --rgb_path $RGB_PATH --stability_score_thresh 0.5
+# python -m src.scripts.inference_custom --template_dir "/code/datasets/bop23_challenge/datasets/templates_pyrender/ycbv/obj_000001" --rgb_path "/code/rgb/000001.png" --stability_score_thresh 0.5

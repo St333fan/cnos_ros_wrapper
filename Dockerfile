@@ -55,7 +55,8 @@ RUN python3 -m pip install \
     ultralytics==8.0.135 \
     gdown \
     unzip \
-    scikit-image
+    scikit-image \
+    cv_bridge
 
 ###
 # Install ros

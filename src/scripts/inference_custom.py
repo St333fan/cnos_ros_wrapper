@@ -94,7 +94,6 @@ def run_inference(template_dir, rgb_path, num_max_dets, conf_threshold, stabilit
     else:
         model.segmentor_model.model.setup_model(device=device, verbose=True)
     logging.info(f"Moving models to {device} done!")
-        
     
     logging.info("Initializing template")
     template_paths = glob.glob(f"{template_dir}/*.png")
@@ -124,10 +123,14 @@ def run_inference(template_dir, rgb_path, num_max_dets, conf_threshold, stabilit
     
     # run inference
     rgb = Image.open(rgb_path).convert("RGB")
+    
+    start_time = time.time()
     detections = model.segmentor_model.generate_masks(np.array(rgb))
     detections = Detections(detections)
     decriptors = model.descriptor_model.forward(np.array(rgb), detections)
-    
+    logging.info(f"Time: {time.time() - start_time}")
+
+
     # get scores per proposal
     scores = metric(decriptors[:, None, :], ref_feats[None, :, :])
     score_per_detection = torch.topk(scores, k=5, dim=-1)[0]
@@ -145,6 +148,8 @@ def run_inference(template_dir, rgb_path, num_max_dets, conf_threshold, stabilit
     detections.add_attribute("object_ids", torch.zeros_like(scores))
         
     detections.to_numpy()
+
+
     save_path = f"{template_dir}/cnos_results/detection"
     detections.save_to_file(0, 0, 0, save_path, "custom", return_results=False)
     detections = convert_npz_to_json(idx=0, list_npz_paths=[save_path+".npz"])

@@ -70,10 +70,12 @@ def run_inference(cfg: DictConfig):
     level_template = cfg.model.onboarding_config.level_templates
     model.name_prediction_file = f"{segmentation_name}_template_{rendering_type}{level_template}_agg{agg_function}_{cfg.dataset_name}"
     logging.info(f"Loading dataloader for {cfg.dataset_name} done!")
+
     trainer.test(
         model,
         dataloaders=query_dataloader,
     )
+
     logging.info(f"---" * 20)
 
 

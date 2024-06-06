@@ -13,6 +13,7 @@ import torch
 from src.utils.bbox_utils import CropResizePad
 import pytorch_lightning as pl
 from src.dataloader.base_bop import BaseBOP
+import pandas as pd
 
 pl.seed_everything(2023)
 
@@ -112,7 +113,44 @@ class BaseBOPTest(BaseBOP):
             scene_id=scene_id,
             frame_id=frame_id,
         )
+    
+class InferenceDL(BaseBOP):
+    def __init__(
+        self,
+        rgb_img,
+        idx,
+        **kwargs,
+    ):
+        self.rgb_img = rgb_img
+        self.rgb_transform = T.Compose(
+            [
+                T.ToTensor(),
+                T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            ]
+        )
+        self.metaData = {
+                "scene_id": [1],
+                "frame_id": [1],
+                "rgb_path": ["ups"],
+                "depth_path": ["ups"],
+                "intrinsic": [0],
+            }
+        self.metaData = pd.DataFrame.from_dict(self.metaData)
+        self.idx = idx
+        print(self.metaData)
+        print(len(self.metaData))
 
+    def __getitem__(self, idx):
+        scene_id = 1
+        frame_id = 1
+        image = self.rgb_transform(self.rgb_img)
+
+        return dict(
+            image=image,
+            scene_id=scene_id,
+            frame_id=frame_id,
+            idx=self.idx
+        )
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

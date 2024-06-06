@@ -136,6 +136,9 @@ class CNOS(pl.LightningModule):
         return idx_selected_proposals, pred_idx_objects, pred_scores
 
     def test_step(self, batch, idx):
+        print(self.device)
+        if idx != 0:
+            return
         if idx == 0:
             os.makedirs(
                 osp.join(
@@ -146,6 +149,8 @@ class CNOS(pl.LightningModule):
             )
             self.set_reference_objects()
             self.move_to_device()
+        else:
+            return
         assert batch["image"].shape[0] == 1, "Batch size must be 1"
 
         image_np = (
@@ -165,8 +170,10 @@ class CNOS(pl.LightningModule):
         detections.remove_very_small_detections(
             config=self.post_processing_config.mask_post_processing
         )
+
         # compute descriptors
         query_decriptors = self.descriptor_model(image_np, detections)
+
         proposal_stage_end_time = time.time()
 
         # matching descriptors
@@ -185,6 +192,7 @@ class CNOS(pl.LightningModule):
             nms_thresh=self.post_processing_config.nms_thresh
         )
         matching_stage_end_time = time.time()
+        print(pred_scores)
 
         runtime = (
             proposal_stage_end_time
@@ -192,6 +200,7 @@ class CNOS(pl.LightningModule):
             + matching_stage_end_time
             - matching_stage_start_time
         )
+
         detections.to_numpy()
 
         scene_id = batch["scene_id"][0]
@@ -217,6 +226,93 @@ class CNOS(pl.LightningModule):
             matching_stage=matching_stage_end_time - matching_stage_start_time,
         )
         return 0
+    
+    def predict_step(self, batch, idx):
+        print(batch['scene_id'])
+        print(batch['frame_id'])
+        print("CHECKPOINT 1")
+        print(idx)
+        idx=batch['idx']
+        if idx == 0:
+            os.makedirs(
+                osp.join(
+                    self.log_dir,
+                    f"predictions/{self.dataset_name}/{self.name_prediction_file}",
+                ),
+                exist_ok=True,
+            )
+            self.set_reference_objects()
+            self.move_to_device()
+        print("CHECKPOINT 2")
+        assert batch["image"].shape[0] == 1, "Batch size must be 1"
+        image_np = (
+            self.inv_rgb_transform(batch["image"][0])
+            .cpu()
+            .numpy()
+            .transpose(1, 2, 0)
+        )
+        image_np = np.uint8(image_np.clip(0, 1) * 255)
+        # run propoals
+        proposal_stage_start_time = time.time()
+        proposals = self.segmentor_model.generate_masks(image_np)
+        # init detections with masks and boxes
+        detections = Detections(proposals)
+        print("CHECKPOINT 3")
+        detections.remove_very_small_detections(
+            config=self.post_processing_config.mask_post_processing
+        )
+
+        query_decriptors = self.descriptor_model(image_np, detections)
+
+        proposal_stage_end_time = time.time()
+
+        # matching descriptors
+        matching_stage_start_time = time.time()
+        (
+            idx_selected_proposals,
+            pred_idx_objects,
+            pred_scores,
+        ) = self.find_matched_proposals(query_decriptors)
+        print("CHECKPOINT 4")
+        # update detections
+        detections.filter(idx_selected_proposals)
+        detections.add_attribute("scores", pred_scores)
+        detections.add_attribute("object_ids", pred_idx_objects)
+        detections.apply_nms_per_object_id(
+            nms_thresh=self.post_processing_config.nms_thresh
+        )
+        matching_stage_end_time = time.time()
+
+        runtime = (
+            proposal_stage_end_time
+            - proposal_stage_start_time
+            + matching_stage_end_time
+            - matching_stage_start_time
+        )
+        detections.to_numpy()
+        scene_id = batch["scene_id"][0]
+        frame_id = batch["frame_id"][0]
+        file_path = osp.join(
+            self.log_dir,
+            f"predictions/{self.dataset_name}/{self.name_prediction_file}/scene{scene_id}_frame{frame_id}",
+        )
+
+        # save detections to file
+        results = detections.save_to_file(
+            scene_id=int(scene_id),
+            frame_id=int(frame_id),
+            runtime=runtime,
+            file_path=file_path,
+            dataset_name=self.dataset_name,
+            return_results=True,
+        )
+        print(detections)
+        #save one mask for visualization from results
+        mask = results["segmentation"][0]
+        gray_image = Image.fromarray(mask.astype(np.uint8)*255, mode='L')
+        gray_image.save('grayscale_images.png')
+
+        return results
 
     def test_epoch_end(self, outputs):
         if self.global_rank == 0:  # only rank 0 process

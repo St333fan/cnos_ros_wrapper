@@ -58,13 +58,14 @@ def render(cfg: DictConfig) -> None:
     template_poses[:, :3, 3] *= 0.4  # zoom to object
 
     for dataset_name in [
-        "lmo",
-        "tless",
-        "tudl",
-        "icbin",
-        "itodd",
-        "hb",
-        "ycbv",
+        # "lmo",
+        # "tless",
+        # "tudl",
+        # "icbin",
+        # "itodd",
+        # "hb",
+        # "ycbv",
+        "ycbv"
     ]:
         dataset_save_dir = osp.join(root_save_dir, dataset_name)
         logging.info(f"Rendering templates for {dataset_name}")
