@@ -1,11 +1,12 @@
 import os
 import numpy as np
 import cv2
-from cv_bridge import CvBridge
+import ros_numpy
 import rospy
 import matplotlib.pyplot as plt
 from actionlib import SimpleActionClient
 from robokudo_msgs.msg import GenericImgProcAnnotatorAction, GenericImgProcAnnotatorGoal
+from sensor_msgs.msg import Image
 
 topic = '/object_detector/cnos'
 data_dir = os.path.dirname(__file__)
@@ -42,12 +43,11 @@ def plot_images(images, titles=['Original', 'BBs', 'Masks']):
 
 if __name__ == '__main__':
     node = rospy.init_node('test_object_detector')
-    print('hi')
-    bridge = CvBridge()
     rgb_path = "rgb/001136.png"
     image_path = os.path.join(data_dir, rgb_path)
     image = cv2.imread(os.path.join(data_dir, rgb_path))
-    ros_image = bridge.cv2_to_imgmsg(image, encoding='rgb8')
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    ros_image = ros_numpy.msgify(Image, image, encoding='rgb8')
     
     client = SimpleActionClient(topic, GenericImgProcAnnotatorAction)
     print("waiting for server...")
@@ -64,6 +64,6 @@ if __name__ == '__main__':
     result = client.get_result()
     print("Received result")
     
-    #roi_image = visualize_rois(image, result.bounding_boxes)
-    #mask_image = visualize_label_image(image, bridge.imgmsg_to_cv2(result.image))
-    #plot_images([image, roi_image, mask_image])
+    roi_image = visualize_rois(image, result.bounding_boxes)
+    mask_image = visualize_label_image(image, ros_numpy.numpify(result.image))
+    plot_images([image, roi_image, mask_image])

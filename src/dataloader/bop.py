@@ -131,14 +131,10 @@ class InferenceDL(BaseBOP):
         self.metaData = {
                 "scene_id": [1],
                 "frame_id": [1],
-                "rgb_path": ["ups"],
-                "depth_path": ["ups"],
                 "intrinsic": [0],
             }
         self.metaData = pd.DataFrame.from_dict(self.metaData)
         self.idx = idx
-        print(self.metaData)
-        print(len(self.metaData))
 
     def __getitem__(self, idx):
         scene_id = 1

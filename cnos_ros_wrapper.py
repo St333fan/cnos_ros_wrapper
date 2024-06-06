@@ -114,17 +114,15 @@ class CNOS_ROS:
     When using the robokudo_msgs, as the callback function for the action server
     """
     def detect_objects(self, goal):
-        print("req detection...")
+        print("Detecting Objects\n")
         
         start_time = time.time()
         rgb = goal.rgb
-        #print(goal.rgb)
 
-        rgb = ros_numpy.numpify(rgb) #TODO set intrinsics somehow (FUCK HYDRA)
-        #print(rgb.shape)
-        #show rgb
+        rgb = ros_numpy.numpify(rgb) #TODO maybe set intrinsics somewhere, seems to work without???
 
-        inference_dataset = InferenceDL(rgb, idx=self.idx) #TODO rewrite to pass image, check image format, else should be ready
+
+        inference_dataset = InferenceDL(rgb, idx=self.idx)
         
         inference_dataloader = DataLoader(
             inference_dataset,
@@ -137,7 +135,6 @@ class CNOS_ROS:
             dataloaders=inference_dataloader,
         )
 
-        #print(response)
         response = response[0]
         category_id = response['category_id']
         scores = response['score']
@@ -164,8 +161,6 @@ class CNOS_ROS:
             bb.height = bbox[i][3]
             bboxes.append(bb)
 
-
-
         result = GenericImgProcAnnotatorResult()
         result.success = True
         result.bounding_boxes = bboxes
@@ -173,8 +168,10 @@ class CNOS_ROS:
         result.image = ros_numpy.msgify(Image, label_image, encoding='16SC1')
         result.class_names = [item_dict[i] for i in category_id[0:i]]
 
-        print(result.class_confidences)
+        print("\nDetected Objects:\n")
         print(result.class_names)
+        print(result.class_confidences)
+        
 
         end_time = time.time()
         elapsed_time = end_time - start_time

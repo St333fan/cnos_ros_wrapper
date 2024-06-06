@@ -171,6 +171,23 @@ class Detections:
         save_npz(file_path, results)
         if return_results:
             return results
+        
+    def return_results_dict(
+        self, runtime, dataset_name):
+        """
+        scene_id, image_id, category_id, bbox, time
+        """
+        boxes = xyxy_to_xywh(self.boxes)
+        results = {
+            "category_id": self.object_ids + 1
+            if dataset_name != "lmo"
+            else lmo_object_ids[self.object_ids],
+            "score": self.scores,
+            "bbox": boxes,
+            "time": runtime,
+            "segmentation": self.masks,
+        }
+        return results
 
     def load_from_file(self, file_path):
         data = np.load(file_path)
