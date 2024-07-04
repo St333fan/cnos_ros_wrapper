@@ -1,15 +1,12 @@
 import os.path as osp
-import os
 import argparse
 import time
 
 import numpy as np
 
 import rospy
-from geometry_msgs.msg import Pose, Point, Quaternion
 import actionlib
 from robokudo_msgs.msg import GenericImgProcAnnotatorResult, GenericImgProcAnnotatorAction
-import json
 import logging
 import os
 import hydra
@@ -17,7 +14,6 @@ from omegaconf import DictConfig, OmegaConf
 from hydra.utils import instantiate
 from torch.utils.data import DataLoader
 #import torch transforms
-import torchvision.transforms as T
 import numpy as np
 from src.dataloader.bop import InferenceDL
 import time
@@ -164,9 +160,9 @@ class CNOS_ROS:
         result = GenericImgProcAnnotatorResult()
         result.success = True
         result.bounding_boxes = bboxes
-        result.class_confidences = scores[0:i]
+        result.class_confidences = scores[0:i+1]
         result.image = ros_numpy.msgify(Image, label_image, encoding='16SC1')
-        result.class_names = [item_dict[i] for i in category_id[0:i]]
+        result.class_names = [item_dict[i] for i in category_id[0:i+1]]
 
         print("\nDetected Objects:\n")
         print(result.class_names)
