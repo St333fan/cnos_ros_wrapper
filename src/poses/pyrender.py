@@ -58,27 +58,15 @@ def render(
         rgb.save(osp.join(output_dir, f"{idx_frame:06d}.png"))
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("cad_path", nargs="?", help="Path to the model file")
-    parser.add_argument("obj_pose", nargs="?", help="Path to the model file")
-    parser.add_argument(
-        "output_dir", nargs="?", help="Path to where the final files will be saved"
-    )
-    parser.add_argument("gpus_devices", nargs="?", help="GPU devices")
-    parser.add_argument("disable_output", nargs="?", help="Disable output of blender")
-    parser.add_argument("light_itensity", nargs="?", type=float, default=0.6, help="Light itensity")
-    parser.add_argument("radius", nargs="?", type=float, default=1, help="Distance from camera to object")
-    args = parser.parse_args()
-    print(args)
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus_devices
-    poses = np.load(args.obj_pose)
+def main(gpus_devices, cad_path, obj_pose, output_dir, light_itensity, radius):
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpus_devices
+    poses = np.load(obj_pose)
     # we can increase high energy for lightning but it's simpler to change just scale of the object to meter
     # poses[:, :3, :3] = poses[:, :3, :3] / 1000.0
     poses[:, :3, 3] = poses[:, :3, 3] / 1000.0
-    if args.radius != 1:
-        poses[:, :3, 3] = poses[:, :3, 3] * args.radius
-    if "tless" in args.output_dir:
+    if radius != 1:
+        poses[:, :3, 3] = poses[:, :3, 3] * radius
+    if "tless" in output_dir:
         intrinsic = np.asarray(
             [1075.65091572, 0.0, 360, 0.0, 1073.90347929, 270, 0.0, 0.0, 1.0]
         ).reshape(3, 3)
@@ -92,7 +80,7 @@ if __name__ == "__main__":
         is_tless = False
 
     # load mesh to meter
-    mesh = trimesh.load_mesh(args.cad_path)
+    mesh = trimesh.load_mesh(cad_path)
     diameter = get_obj_diameter(mesh)
     if diameter > 100: # object is in mm
         mesh.apply_scale(0.001)
@@ -104,12 +92,27 @@ if __name__ == "__main__":
         mesh = pyrender.Mesh.from_trimesh(mesh, smooth=False)
     else:
         mesh = pyrender.Mesh.from_trimesh(as_mesh(mesh))
-    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     render(
-        output_dir=args.output_dir,
+        output_dir=output_dir,
         mesh=mesh,
         obj_poses=poses,
         intrinsic=intrinsic,
         img_size=(480, 640),
-        light_itensity=args.light_itensity,
+        light_itensity=light_itensity,
     )
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("cad_path", nargs="?", help="Path to the model file")
+    parser.add_argument("obj_pose", nargs="?", help="Path to the model file")
+    parser.add_argument(
+        "output_dir", nargs="?", help="Path to where the final files will be saved"
+    )
+    parser.add_argument("gpus_devices", nargs="?", help="GPU devices")
+    parser.add_argument("disable_output", nargs="?", help="Disable output of blender")
+    parser.add_argument("light_itensity", nargs="?", type=float, default=0.6, help="Light itensity")
+    parser.add_argument("radius", nargs="?", type=float, default=1, help="Distance from camera to object")
+    args = parser.parse_args()
+    main(args.gpus_devices, args.cad_path, args.obj_pose, args.output_dir, args.light_itensity, args.radius)
