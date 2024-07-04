@@ -1,13 +1,10 @@
 import os, sys
 import numpy as np
-import shutil
-from tqdm import tqdm
 import time
 import torch
 from PIL import Image
 import logging
 import os, sys
-import os.path as osp
 from hydra import initialize, compose
 # set level logging
 logging.basicConfig(level=logging.INFO)
@@ -149,6 +146,12 @@ def run_inference(template_dir, rgb_path, num_max_dets, conf_threshold, stabilit
         
     detections.to_numpy()
 
+    results = detections.return_results_dict(
+        runtime=2,
+        dataset_name="test",
+    )
+    print(results)
+    print(detections)
 
     save_path = f"{template_dir}/cnos_results/detection"
     detections.save_to_file(0, 0, 0, save_path, "custom", return_results=False)

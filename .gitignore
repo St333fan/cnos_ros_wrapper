@@ -173,3 +173,4 @@ cython_debug/
 
 datasets/
 torch_cache/
+custom_data/
