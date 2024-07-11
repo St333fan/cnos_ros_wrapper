@@ -21,6 +21,8 @@ from hydra.utils import instantiate
 import ros_numpy
 from sensor_msgs.msg import Image, RegionOfInterest
 from src.poses.pyrender import main as render
+import os
+
 item_dict = {
     1: '002_master_chef_can',
     2: '003_cracker_box',
@@ -48,7 +50,7 @@ item_dict = {
 
 class CNOS_ROS:
     def __init__(self, stability_score_thresh, num_max_dets, conf_threshold, gpu_devices, cad_path, obj_pose, output_dir, light_itensity, radius):
-
+        self.object_name = os.path.basename(cad_path).split(".")[0]
         self.num_max_dets = num_max_dets
         self.conf_threshold = conf_threshold
         with initialize(version_base=None, config_path="configs"):
@@ -160,8 +162,9 @@ class CNOS_ROS:
         bbox = response['bbox']
         mask = response['segmentation']
 
-
-        if len(scores) == 0:
+        print(scores)
+        if len(bbox) == 0:
+            logging.info(f"No object with conficence > {self.conf_threshold} detected")
             self.server.set_aborted()
             return
 
@@ -192,7 +195,7 @@ class CNOS_ROS:
         result.image = ros_numpy.msgify(Image, label_image, encoding='16SC1')
         result.class_names = [item_dict[i] for i in category_id[0:i+1]]
 
-        result.class_names = ["mesh"]
+        result.class_names = [self.object_name]
         print("\nDetected Objects:\n")
         print(result.class_names)
         print(result.class_confidences)
@@ -216,8 +219,8 @@ if __name__ == "__main__":
         "output_dir", nargs="?", default='custom_data/temps', help="Path to where the final files will be saved"
     )
     parser.add_argument("gpus_devices", nargs="?", default='0', help="GPU devices")
-    parser.add_argument("light_itensity", nargs="?", type=float, default=1, help="Light itensity")
-    parser.add_argument("radius", nargs="?", type=float, default=6, help="Distance from camera to object")
+    parser.add_argument("light_itensity", nargs="?", type=float, default=0.1, help="Light itensity")
+    parser.add_argument("radius", nargs="?", type=float, default=0.3, help="Distance from camera to object")
     parser.add_argument("--num_max_dets", nargs="?", default=1, type=int, help="Number of max detections")
     parser.add_argument("--confg_threshold", nargs="?", default=0.5, type=float, help="Confidence threshold")
     parser.add_argument("--stability_score_thresh", nargs="?", default=0.97, type=float, help="stability_score_thresh of SAM")
