@@ -162,9 +162,9 @@ class CNOS_ROS:
         bbox = response['bbox']
         mask = response['segmentation']
 
-        print(scores)
+        print(f"Detection Scores: {scores}")
         if len(bbox) == 0:
-            logging.info(f"No object with conficence > {self.conf_threshold} detected")
+            rospy.loginfo(f"No object with conficence > {self.conf_threshold} detected")
             self.server.set_aborted()
             return
 
