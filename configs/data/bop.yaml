@@ -1,5 +1,5 @@
 root_dir: ${machine.root_dir}/datasets/
-source_url: https://bop.felk.cvut.cz/media/data/bop_datasets/
+source_url: https://huggingface.co/datasets/bop-benchmark/datasets/resolve/main/
 unzip_mode: unzip
 
 reference_dataloader:
