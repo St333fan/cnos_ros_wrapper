@@ -114,8 +114,7 @@ RUN apt-get update \
 
 WORKDIR /code
 
-
-CMD ["/bin/bash", "-c", "source ros_entrypoint.sh && \
+CMD ["/bin/bash", "-c", "source /opt/ros/noetic/setup.bash && source /root/catkin_ws/devel/setup.bash && \
     python cnos_ros_wrapper.py dataset_name=ycbv model=cnos_fast model.onboarding_config.rendering_type=pyrender"]
 
 
