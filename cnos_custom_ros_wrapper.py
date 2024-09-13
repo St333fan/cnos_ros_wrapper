@@ -1,27 +1,18 @@
 import numpy as np
 import time
-import torch
 from PIL import Image as IM
 import logging
-from hydra import initialize, compose
 # set level logging
 logging.basicConfig(level=logging.INFO)
 import argparse
-import glob
-from src.utils.bbox_utils import CropResizePad
-from torchvision.utils import save_image
-from src.model.utils import Detections
-from src.model.loss import Similarity
 import rospy
 import actionlib
 from robokudo_msgs.msg import GenericImgProcAnnotatorResult, GenericImgProcAnnotatorAction
-from omegaconf import OmegaConf
-from hydra.utils import instantiate
 #import torch transforms
 import ros_numpy
-from sensor_msgs.msg import Image, RegionOfInterest
-from src.poses.pyrender import main as render
-import os
+from sensor_msgs.msg import Image
+from CNOS import CNOSDetector
+
 
 item_dict = {
     1: '002_master_chef_can',
@@ -47,63 +38,22 @@ item_dict = {
     21: '061_foam_brick'
 }
 
+item_dict = {
+    1: '006_mustard_bottle',
+    2: '024_bowl',
+}
 
 class CNOS_ROS:
-    def __init__(self, stability_score_thresh, num_max_dets, conf_threshold, gpu_devices, cad_path, obj_pose, output_dir, light_itensity, radius):
-        self.object_name = os.path.basename(cad_path).split(".")[0]
-        self.num_max_dets = num_max_dets
-        self.conf_threshold = conf_threshold
-        with initialize(version_base=None, config_path="configs"):
-            cfg = compose(config_name='run_inference.yaml')
-        cfg_segmentor = cfg.model.segmentor_model
-        if "fast_sam" in cfg_segmentor._target_:
-            logging.info("Using FastSAM, ignore stability_score_thresh!")
-        else:
-            cfg.model.segmentor_model.stability_score_thresh = stability_score_thresh
-        self.metric = Similarity()
-        logging.info("Initializing model")
-        self.model = instantiate(cfg.model)
-        
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model.descriptor_model.model = self.model.descriptor_model.model.to(device)
-        self.model.descriptor_model.model.device = device
-        # if there is predictor in the model, move it to device
-        if hasattr(self.model.segmentor_model, "predictor"):
-            self.model.segmentor_model.predictor.model = (
-                self.model.segmentor_model.predictor.model.to(device)
-            )
-        else:
-            self.model.segmentor_model.model.setup_model(device=device, verbose=True)
-        logging.info(f"Moving models to {device} done!")
-        
-        logging.info("Render Templates")
-        render(gpu_devices, cad_path, obj_pose, output_dir, light_itensity, radius)
-
-        logging.info("Initializing template")
-        template_paths = glob.glob(f"{output_dir}/*.png")
-        boxes, templates = [], []
-        for path in template_paths:
-            image = IM.open(path)
-            boxes.append(image.getbbox())
-
-            image = torch.from_numpy(np.array(image.convert("RGB")) / 255).float()
-            templates.append(image)
-            
-        templates = torch.stack(templates).permute(0, 3, 1, 2)
-        boxes = torch.tensor(np.array(boxes))
-        
-        processing_config = OmegaConf.create(
-            {
-                "image_size": 224,
-            }
+    def __init__(self, templates_dir, stability_score_thresh, conf_threshold, subset, item_dict=item_dict):
+        print(f"Initializing CNOS Object Detector with params: {templates_dir=}, {stability_score_thresh=}, {conf_threshold=}, {subset=}")
+        self.cnos_detector = CNOSDetector(
+            templates_dir = templates_dir,
+            conf_threshold=conf_threshold, 
+            stability_score_thresh=stability_score_thresh, 
+            config_name="run_inference.yaml",
+            subset=subset
         )
-        proposal_processor = CropResizePad(processing_config.image_size)
-        templates = proposal_processor(images=templates, boxes=boxes).cuda()
-        save_image(templates, f"{output_dir}/results/templates.png", nrow=7)
-        self.ref_feats = self.model.descriptor_model.compute_features(
-                        templates, token_name="x_norm_clstoken"
-                    )
-        logging.info(f"Ref feats: {self.ref_feats.shape}")
+        self.item_dict = item_dict
 
         rospy.init_node("cnos_custom_detection")
         self.server = actionlib.SimpleActionServer('/object_detector/cnos_custom',
@@ -126,44 +76,20 @@ class CNOS_ROS:
 
         rgb = ros_numpy.numpify(rgb) #TODO maybe set intrinsics somewhere, seems to work without???
 
+        # numpy to PIL
+        rgb = IM.fromarray(rgb)
+
         start_time = time.time()
-        detections = self.model.segmentor_model.generate_masks(np.array(rgb))
-        detections = Detections(detections)
-        decriptors = self.model.descriptor_model.forward(np.array(rgb), detections)
-        logging.info(f"Time: {time.time() - start_time}")
 
+        results = self.cnos_detector.run_inference(rgb)
+        #  dict with obj_ids masks and scores
 
-        # get scores per proposal
-        scores = self.metric(decriptors[:, None, :], self.ref_feats[None, :, :])
-        score_per_detection = torch.topk(scores, k=5, dim=-1)[0]
-        score_per_detection = torch.mean(
-            score_per_detection, dim=-1
-        )
-        
-        # get top-k detections
-        scores, index = torch.topk(score_per_detection, k=self.num_max_dets, dim=-1)
-        detections.filter(index)
-        
-        # keep only detections with score > conf_threshold
-        detections.filter(scores>self.conf_threshold)
-        detections.add_attribute("scores", scores)
-        detections.add_attribute("object_ids", torch.zeros_like(scores))
-            
-        detections.to_numpy()
-
-        response = detections.return_results_dict(
-            runtime=2,
-            dataset_name="test",
-        )
-
-        response = response
-        category_id = response['category_id']
-        scores = response['score']
-        bbox = response['bbox']
-        mask = response['segmentation']
+        category_id = results['obj_ids']
+        scores = results['scores']
+        masks = results['masks']
 
         print(f"Detection Scores: {scores}")
-        if len(bbox) == 0:
+        if len(masks) == 0:
             rospy.loginfo(f"No object with conficence > {self.conf_threshold} detected")
             self.server.set_aborted()
             return
@@ -172,30 +98,17 @@ class CNOS_ROS:
         order = np.argsort(scores)[::-1]
         category_id = category_id[order]
         scores = scores[order]
-        bbox = bbox[order]
-        mask = mask[order]
-        score = scores[0]
-        bboxes = []
-        label_image = np.full_like(mask[0],-1, dtype=np.int16)
+        masks = masks[order]
+        label_image = np.full_like(masks[0],-1, dtype=np.int16)
         for i, score in enumerate(scores):
-            if score < 0.5:
-                break
-            label_image[mask[i]>0] = i
-            bb = RegionOfInterest()
-            bb.x_offset = bbox[i][0]
-            bb.y_offset = bbox[i][1]
-            bb.width = bbox[i][2]
-            bb.height = bbox[i][3]
-            bboxes.append(bb)
+            label_image[masks[i]>0] = i
 
         result = GenericImgProcAnnotatorResult()
         result.success = True
-        result.bounding_boxes = bboxes
         result.class_confidences = scores[0:i+1]
         result.image = ros_numpy.msgify(Image, label_image, encoding='16SC1')
-        result.class_names = [item_dict[i] for i in category_id[0:i+1]]
+        result.class_names = [self.item_dict[i+1] for i in category_id[0:i+1]]
 
-        result.class_names = [self.object_name]
         print("\nDetected Objects:\n")
         print(result.class_names)
         print(result.class_confidences)
@@ -209,21 +122,10 @@ class CNOS_ROS:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser()
-    parser.add_argument("cad_path", nargs="?", default='custom_data/mesh.ply', help="Path to the model file")
-    parser.add_argument(
-        "obj_pose", 
-        nargs="?", 
-        default='src/poses/predefined_poses/obj_poses_level0.npy', 
-        help="Path to the model file")
-    parser.add_argument(
-        "output_dir", nargs="?", default='custom_data/temps', help="Path to where the final files will be saved"
-    )
-    parser.add_argument("gpus_devices", nargs="?", default='0', help="GPU devices")
-    parser.add_argument("light_itensity", nargs="?", type=float, default=0.1, help="Light itensity")
-    parser.add_argument("radius", nargs="?", type=float, default=0.3, help="Distance from camera to object")
-    parser.add_argument("--num_max_dets", nargs="?", default=1, type=int, help="Number of max detections")
+    parser.add_argument("--templates_dir", required=True, type=str, help="Path to the templates folder")
     parser.add_argument("--confg_threshold", nargs="?", default=0.5, type=float, help="Confidence threshold")
     parser.add_argument("--stability_score_thresh", nargs="?", default=0.97, type=float, help="stability_score_thresh of SAM")
+    parser.add_argument("--subset", nargs="?", default=4, type=int, help="uses every nth template")
     args = parser.parse_args()
-    CNOS_ROS(args.stability_score_thresh, args.num_max_dets, args.confg_threshold, args.gpus_devices, args.cad_path, args.obj_pose, args.output_dir, args.light_itensity, args.radius)
+    CNOS_ROS(args.templates_dir, args.stability_score_thresh, args.confg_threshold, args.subset)
     rospy.spin()

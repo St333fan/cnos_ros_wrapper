@@ -31,7 +31,8 @@ class CNOSDetector:
                templates_dir,
                conf_threshold=0.5, 
                stability_score_thresh=0.97, 
-               config_name="run_inference.yaml"):
+               config_name="run_inference.yaml",
+               subset=4):
     
     templates_dir = Path(templates_dir)
     
@@ -70,13 +71,19 @@ class CNOSDetector:
       logging.info(f"Initializing template {template_name}")
       template_paths = glob.glob(f"{template_obj_dir}/*.png")
       boxes, templates = [], []
-      for path in template_paths:
-        image = Image.open(path)
-        boxes.append(image.getbbox())
+      for idx, path in enumerate(template_paths):
+        if idx % subset != 0:
+          continue
+        if path.endswith(".png") or path.endswith(".jpg") or path.endswith(".jpeg"):
+          image = Image.open(path)
+          boxes.append(image.getbbox())
 
-        image = torch.from_numpy(np.array(image.convert("RGB")) / 255).float()
-        templates.append(image)
+          image = torch.from_numpy(np.array(image.convert("RGB")) / 255).float()
+          templates.append(image)
 
+      if len(templates) == 0:
+        logging.warn(f"No templates found in {template_obj_dir}")
+        continue
       templates = torch.stack(templates).permute(0, 3, 1, 2)
       boxes = torch.tensor(np.array(boxes))
 
@@ -101,11 +108,10 @@ class CNOSDetector:
     print("CNOS initialization finished!")
     
   
-  def run_inference(self, rgb_path, output_dir=None):
+  def run_inference(self, rgb, output_dir=None):
       # run inference
-    rgb = Image.open(rgb_path).convert("RGB")
-    
-    rgb_name = str(rgb_path).split("/")[-1]
+    if output_dir is not None:
+      rgb_name = "test"
 
     # run proposals
     detections = self.model.segmentor_model.generate_masks(np.array(rgb))
