@@ -85,3 +85,58 @@ def visualize_masks(rgb, masks, save_path="./tmp/tmp.png"):
     concat.paste(rgb, (0, 0))
     concat.paste(prediction, (img.shape[1], 0))
     return concat
+
+# visualize_masks(rgb, detections.masks.astype(bool), detections.object_ids, colors=mask_vis_colors, save_path=f"{masks_dir}/../masks.png")
+def visualize_masks_multiple(rgb, masks, object_ids, colors, save_path="./tmp/tmp.png"):
+    img = rgb.copy()
+    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+    # img = (255*img).astype(np.uint8)
+    # colors = distinctipy.get_colors(len(masks))
+    alpha = 0.33
+
+    for mask, color, obj_id in tqdm(zip(masks,colors,object_ids)):
+        edge = canny(mask)
+        edge = binary_dilation(edge, np.ones((2, 2)))
+
+        r = int(255*color[0])
+        g = int(255*color[1])
+        b = int(255*color[2])
+        img[mask, 0] = alpha*r + (1 - alpha)*img[mask, 0]
+        img[mask, 1] = alpha*g + (1 - alpha)*img[mask, 1]
+        img[mask, 2] = alpha*b + (1 - alpha)*img[mask, 2]   
+        img[edge, :] = 255
+    
+    img = Image.fromarray(np.uint8(img))
+    img.save(save_path)
+    prediction = Image.open(save_path)
+    
+    # concat side by side in PIL
+    img = np.array(img)
+    concat = Image.new('RGB', (img.shape[1] + prediction.size[0], img.shape[0]))
+    concat.paste(rgb, (0, 0))
+    concat.paste(prediction, (img.shape[1], 0))
+    return concat
+
+
+def visualize_masks_multiple_no_saving(rgb, masks, object_ids, colors, save_path="./tmp/tmp.png"):
+    img = rgb.copy()
+    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+    # img = (255*img).astype(np.uint8)
+    # colors = distinctipy.get_colors(len(masks))
+    alpha = 0.33
+
+    for mask, color, obj_id in tqdm(zip(masks,colors,object_ids)):
+        edge = canny(mask)
+        edge = binary_dilation(edge, np.ones((2, 2)))
+
+        r = int(255*color[0])
+        g = int(255*color[1])
+        b = int(255*color[2])
+        img[mask, 0] = alpha*r + (1 - alpha)*img[mask, 0]
+        img[mask, 1] = alpha*g + (1 - alpha)*img[mask, 1]
+        img[mask, 2] = alpha*b + (1 - alpha)*img[mask, 2]   
+        img[edge, :] = 255
+    
+    return img
