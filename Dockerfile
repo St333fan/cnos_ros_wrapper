@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
 	# python3-opencv \
     ca-certificates \
     python3-dev \
+    cmake=3.16.* \
     git \
     wget \
     sudo \
@@ -45,7 +46,7 @@ RUN python3 -m pip install \
     scipy \
     hydra-colorlog \
     hydra-core \
-    pytorch-lightning==1.8.1 \
+    pytorch-lightning==2.0.0 \
     pandas \
     ruamel.yaml \
     pyrender \
@@ -92,14 +93,14 @@ RUN apt-get update \
 RUN sudo rosdep init
 RUN rosdep update
 RUN mkdir -p /root/catkin_ws/src
-RUN /bin/bash -c  '. /opt/ros/noetic/setup.bash; cd /root/catkin_ws; catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so; catkin build'
+RUN /bin/bash -c  '. /opt/ros/noetic/setup.bash; cd /root/catkin_ws; catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so; catkin build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5'
 
 # clone and build message and service definitions
 RUN /bin/bash -c 'cd /root/catkin_ws/src; \
                   git clone https://github.com/v4r-tuwien/object_detector_msgs.git'
 RUN /bin/bash -c 'cd /root/catkin_ws/src; \
                   git clone https://gitlab.informatik.uni-bremen.de/robokudo/robokudo_msgs.git'
-RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /root/catkin_ws; catkin build'
+RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /root/catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5'
 
 RUN python3 -m pip install \
     catkin_pkg \
@@ -116,5 +117,4 @@ WORKDIR /code
 
 CMD ["/bin/bash", "-c", "source /opt/ros/noetic/setup.bash && source /root/catkin_ws/devel/setup.bash && \
     python cnos_ros_wrapper.py dataset_name=ycbv model=cnos_fast model.onboarding_config.rendering_type=pyrender"]
-
 
