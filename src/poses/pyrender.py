@@ -81,7 +81,8 @@ def main(gpus_devices, cad_path, obj_pose, output_dir, light_itensity, radius):
 
     # load mesh to meter
     mesh = trimesh.load_mesh(cad_path)
-    diameter = get_obj_diameter(mesh)
+    diameter = get_obj_diameter(args.cad_path)
+    # diameter = get_obj_diameter(mesh)
     if diameter > 100: # object is in mm
         mesh.apply_scale(0.001)
     if is_tless:
