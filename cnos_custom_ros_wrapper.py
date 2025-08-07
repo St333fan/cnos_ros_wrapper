@@ -38,10 +38,10 @@ item_dict = {
     21: '061_foam_brick'
 }
 
-item_dict = {
-    1: '006_mustard_bottle',
-    2: '024_bowl',
-}
+#item_dict = {
+#    1: '006_mustard_bottle',
+#    2: '024_bowl',
+#}
 
 class CNOS_ROS:
     def __init__(self, templates_dir, stability_score_thresh, conf_threshold, subset, item_dict=item_dict):
