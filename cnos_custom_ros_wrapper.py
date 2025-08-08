@@ -12,6 +12,8 @@ from robokudo_msgs.msg import GenericImgProcAnnotatorResult, GenericImgProcAnnot
 import ros_numpy
 from sensor_msgs.msg import Image
 from CNOS import CNOSDetector
+import torch
+import gc
 
 
 item_dict = {
@@ -37,15 +39,18 @@ item_dict = {
     20: '052_extra_large_clamp',
     21: '061_foam_brick'
 }
-
-#item_dict = {
-#    1: '006_mustard_bottle',
-#    2: '024_bowl',
-#}
+"""
+item_dict = {
+    1: '006_mustard_bottle',
+    2: '024_bowl',
+    8: '009_gelatin_box',
+    2: '003_cracker_box'
+}
+"""
 
 class CNOS_ROS:
-    def __init__(self, templates_dir, stability_score_thresh, conf_threshold, subset, item_dict=item_dict):
-        print(f"Initializing CNOS Object Detector with params: {templates_dir=}, {stability_score_thresh=}, {conf_threshold=}, {subset=}")
+    def __init__(self, templates_dir, stability_score_thresh, conf_threshold, subset, single_object_mode=False, item_dict=item_dict):
+        print(f"Initializing CNOS Object Detector with params: {templates_dir=}, {stability_score_thresh=}, {conf_threshold=}, {subset=}, {single_object_mode=}")
         self.cnos_detector = CNOSDetector(
             templates_dir = templates_dir,
             conf_threshold=conf_threshold, 
@@ -54,6 +59,7 @@ class CNOS_ROS:
             subset=subset
         )
         self.item_dict = item_dict
+        self.single_object_mode = single_object_mode
 
         rospy.init_node("cnos_custom_detection")
         self.server = actionlib.SimpleActionServer('/object_detector/cnos_custom',
@@ -99,15 +105,41 @@ class CNOS_ROS:
         category_id = category_id[order]
         scores = scores[order]
         masks = masks[order]
+        
+        # Remove duplicates - keep only highest confidence detection per object category
+        seen_categories = set()
+        unique_indices = []
+        
+        for i, cat_id in enumerate(category_id):
+            if cat_id not in seen_categories:
+                seen_categories.add(cat_id)
+                unique_indices.append(i)
+        
+        # Filter arrays to keep only unique objects
+        category_id = category_id[unique_indices]
+        scores = scores[unique_indices]
+        masks = masks[unique_indices]
+        
+        print(f"After duplicate removal: {len(category_id)} unique objects")
+        print(f"Single object mode: {self.single_object_mode}")
+        
+        # Single object mode - keep only highest scoring detection
+        if True and len(category_id) > 1:
+            print(f"Single object mode enabled: keeping only highest scoring detection out of {len(category_id)} objects")
+            print(f"Discarding: {[self.item_dict[i+1] for i in category_id[1:]]}")
+            category_id = category_id[:1]
+            scores = scores[:1]
+            masks = masks[:1]
+        
         label_image = np.full_like(masks[0],-1, dtype=np.int16)
         for i, score in enumerate(scores):
             label_image[masks[i]>0] = i
 
         result = GenericImgProcAnnotatorResult()
         result.success = True
-        result.class_confidences = scores[0:i+1]
+        result.class_confidences = scores
         result.image = ros_numpy.msgify(Image, label_image, encoding='16SC1')
-        result.class_names = [self.item_dict[i+1] for i in category_id[0:i+1]]
+        result.class_names = [self.item_dict[i+1] for i in category_id]
 
         print("\nDetected Objects:\n")
         print(result.class_names)
@@ -117,15 +149,22 @@ class CNOS_ROS:
         elapsed_time = end_time - start_time
         print('Execution time:', elapsed_time, 'seconds')
         self.server.set_succeeded(result)
+        """
+        # Clear GPU memory after inference
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            gc.collect()
+            print("GPU memory cleared after inference")
+        """
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser()
     parser.add_argument("--templates_dir", required=True, type=str, help="Path to the templates folder")
     parser.add_argument("--confg_threshold", nargs="?", default=0.5, type=float, help="Confidence threshold")
     parser.add_argument("--stability_score_thresh", nargs="?", default=0.97, type=float, help="stability_score_thresh of SAM")
     parser.add_argument("--subset", nargs="?", default=4, type=int, help="uses every nth template")
+    parser.add_argument("--single_object_mode", action="store_true", help="Return only the highest scoring detection")
     args = parser.parse_args()
-    CNOS_ROS(args.templates_dir, args.stability_score_thresh, args.confg_threshold, args.subset)
+    CNOS_ROS(args.templates_dir, args.stability_score_thresh, args.confg_threshold, args.subset, args.single_object_mode, item_dict=item_dict)
     rospy.spin()
