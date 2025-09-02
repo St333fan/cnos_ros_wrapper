@@ -1,3 +1,18 @@
+# Render Deplates for DOPE
+```bash
+# if working with DOPE, place dataset under datasets, here for example manibot
+DOPE
+├── datasets
+│   ├── manibot
+│   │   └── models
+│   │       └── models
+│   │           ├── obj_000001.ply
+│   │           └── obj_000001.png
+
+# before render open script and add <dataset_name>, rendering in Docker!
+python -m src.scripts.render_template_with_pyrender data.root_dir=/code/templates
+```
+
 <div align="center">
 <h2>
 CNOS: A Strong Baseline for CAD-based Novel Object Segmentation
