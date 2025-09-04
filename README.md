@@ -1,4 +1,4 @@
-# Render Deplates for DOPE
+# Render Templates for DOPE
 ```bash
 # if working with DOPE, place dataset under datasets, here for example manibot
 DOPE
