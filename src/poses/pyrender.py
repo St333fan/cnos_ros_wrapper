@@ -48,12 +48,13 @@ def render(
         fx=fx, fy=fy, cx=cx, cy=cy, znear=0.05, zfar=100000
     )
     scene.add(camera, pose=cam_pose)
+    # Disable face culling to see inside faces
     render_engine = pyrender.OffscreenRenderer(img_size[1], img_size[0])
     cad_node = scene.add(mesh, pose=np.eye(4), name="cad")
 
     for idx_frame in range(obj_poses.shape[0]):
         scene.set_pose(cad_node, obj_poses[idx_frame])
-        rgb, depth = render_engine.render(scene, pyrender.constants.RenderFlags.RGBA)
+        rgb, depth = render_engine.render(scene, flags=pyrender.RenderFlags.RGBA | pyrender.RenderFlags.SKIP_CULL_FACES)
         rgb = Image.fromarray(np.uint8(rgb))
         rgb.save(osp.join(output_dir, f"{idx_frame:06d}.png"))
 
@@ -113,7 +114,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("gpus_devices", nargs="?", help="GPU devices")
     parser.add_argument("disable_output", nargs="?", help="Disable output of blender")
-    parser.add_argument("light_itensity", nargs="?", type=float, default=0.6, help="Light itensity")
+    parser.add_argument("light_itensity", nargs="?", type=float, default=1, help="Light itensity")
     parser.add_argument("radius", nargs="?", type=float, default=1, help="Distance from camera to object")
     args = parser.parse_args()
     main(args.gpus_devices, args.cad_path, args.obj_pose, args.output_dir, args.light_itensity, args.radius)
