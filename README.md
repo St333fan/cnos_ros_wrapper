@@ -10,16 +10,17 @@ DOPE/datasets/bop23_challenge/pretrained/segment-anything/sam_vit_h_4b8939.pth
 # if working with DOPE, place dataset under datasets, here for example manibot
 DOPE
 ├── datasets
-│   ├── manibot
-│   │   └── models
-│   │       └── models
-│   │           ├── obj_000001.ply
-│   │           └── obj_000001.png
+│   ├── templates
+│   └── manibot
+│          └── models
+│             └── models
+│                  ├── obj_000001.ply
+│                  └── obj_000001.png
 
 # before render open script and add <dataset_name>, rendering in Docker!
-python -m src.scripts.render_template_with_pyrender data.root_dir=/code/templates datasets=[manibot]
+python -m src.scripts.render_template_with_pyrender data.root_dir=/code/templates dataset_name=["manibot"]
 # or more/other
-python -m src.scripts.render_template_with_pyrender data.root_dir=/code/templates datasets=[ycbv, manibot]
+python -m src.scripts.render_template_with_pyrender data.root_dir=/code/templates dataset_name=["ycbv", "manibot"]
 ```
 After rendering
 ```bash
@@ -37,6 +38,13 @@ DOPE
 │   │   │       │   ├── 000000.png
 │   │   │       │   ├── 000001.png
 │   │   │       │   ├── 000002.png
+
+# copy templates_pyrender to submodule Path
+/DOPE/object_detectors/cnos_sasha/templates_pyrender
+
+# adapt config, cnos(sam), cnos_fast(fastsam), dataset_name: "ycbv" or other
+object_detectors/cnos_sasha/configs/run_inference.yaml
+
 ```
 
 <div align="center">
