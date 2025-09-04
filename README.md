@@ -10,7 +10,9 @@ DOPE
 │   │           └── obj_000001.png
 
 # before render open script and add <dataset_name>, rendering in Docker!
-python -m src.scripts.render_template_with_pyrender data.root_dir=/code/templates
+python -m src.scripts.render_template_with_pyrender data.root_dir=/code/templates datasets=[manibot]
+# or more/other
+python -m src.scripts.render_template_with_pyrender data.root_dir=/code/templates datasets=[ycbv, manibot]
 ```
 
 <div align="center">
