@@ -14,6 +14,23 @@ python -m src.scripts.render_template_with_pyrender data.root_dir=/code/template
 # or more/other
 python -m src.scripts.render_template_with_pyrender data.root_dir=/code/templates datasets=[ycbv, manibot]
 ```
+After rendering
+```bash
+DOPE
+├── datasets
+│   ├── templates
+│   │   ├── manibot
+│   │   │   └── models
+│   │   │       └── models
+│   │   │           ├── obj_000001.ply
+│   │   │           └── texture.png
+│   │   ├── templates_pyrender
+│   │   │   └── manibot
+│   │   │       ├── obj_000001
+│   │   │       │   ├── 000000.png
+│   │   │       │   ├── 000001.png
+│   │   │       │   ├── 000002.png
+```
 
 <div align="center">
 <h2>
