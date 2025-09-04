@@ -1,3 +1,10 @@
+# Start with docker-compose from DOPE
+```bash
+# download weights
+python -m src.scripts.download_fastsam
+# place under DOPE
+DOPE/datasets/bop23_challenge/pretrained/segment-anything/sam_vit_h_4b8939.pth
+```
 # Render Templates for DOPE
 ```bash
 # if working with DOPE, place dataset under datasets, here for example manibot
