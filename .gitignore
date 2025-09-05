@@ -174,3 +174,4 @@ cython_debug/
 datasets/
 torch_cache/
 custom_data/
+templates_pyrender/
