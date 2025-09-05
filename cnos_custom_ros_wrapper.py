@@ -44,7 +44,7 @@ item_dict = {
 #}
 
 item_dict = {
-    1: 'ahorn'
+    1: '001_ahorn_sirup'
 }
 
 class CNOS_ROS:
