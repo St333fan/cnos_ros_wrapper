@@ -33,11 +33,11 @@ class CNOSDetector:
                stability_score_thresh=0.97, 
                config_name="run_inference.yaml",
                subset=4):
-    
-    templates_dir = Path(templates_dir)
-    
+
     with initialize(version_base=None, config_path="configs"):
       cfg = compose(config_name=config_name)
+
+    templates_dir = Path(templates_dir) / cfg.dataset_name
     
     cfg_segmentor = cfg.model.segmentor_model
     if "fast_sam" in cfg_segmentor._target_:
