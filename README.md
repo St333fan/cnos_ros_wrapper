@@ -26,18 +26,16 @@ After rendering
 ```bash
 DOPE
 ├── datasets
-│   ├── templates
-│   │   ├── manibot
-│   │   │   └── models
-│   │   │       └── models
-│   │   │           ├── obj_000001.ply
-│   │   │           └── texture.png
-│   │   ├── templates_pyrender
-│   │   │   └── manibot
-│   │   │       ├── obj_000001
-│   │   │       │   ├── 000000.png
-│   │   │       │   ├── 000001.png
-│   │   │       │   ├── 000002.png
+│   ├── manibot
+│   │   └── models
+│   │       ├── obj_000001.ply
+│   │       └── texture.png
+│   ├── templates_pyrender
+│   │   └── manibot
+│   │       ├── obj_000001
+│   │       │   ├── 000000.png
+│   │       │   ├── 000001.png
+│   │       │   ├── 000002.png
 
 # copy templates_pyrender to submodule Path
 /DOPE/object_detectors/cnos_sasha/templates_pyrender

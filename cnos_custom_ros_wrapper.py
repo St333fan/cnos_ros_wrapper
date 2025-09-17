@@ -44,7 +44,8 @@ item_dict = {
 #}
 
 item_dict = {
-    1: '001_ahorn_sirup'
+    1: '001_ahorn_sirup',
+    2: '002_max_house',
 }
 
 class CNOS_ROS:
@@ -71,6 +72,7 @@ class CNOS_ROS:
 
     """
     When using the robokudo_msgs, as the callback function for the action server
+    Only send the best (highest confidence) object per category.
     """
     def detect_objects(self, goal):
         print("Detecting Objects\n")
@@ -78,42 +80,43 @@ class CNOS_ROS:
         start_time = time.time()
         rgb = goal.rgb
 
-        rgb = ros_numpy.numpify(rgb) #TODO maybe set intrinsics somewhere, seems to work without???
+        rgb = ros_numpy.numpify(rgb)
 
         # numpy to PIL
         rgb = IM.fromarray(rgb)
 
-        start_time = time.time()
-
         results = self.cnos_detector.run_inference(rgb)
-        #  dict with obj_ids masks and scores
-
         category_id = results['obj_ids']
         scores = results['scores']
         masks = results['masks']
 
         print(f"Detection Scores: {scores}")
         if len(masks) == 0:
-            rospy.loginfo(f"No object with conficence > {self.conf_threshold} detected")
+            rospy.loginfo(f"No object with confidence > {self.cnos_detector.conf_threshold} detected")
             self.server.set_aborted()
             return
 
-        # sort the four np.arrays based on the scores
-        order = np.argsort(scores)[::-1]
-        category_id = category_id[order]
-        scores = scores[order]
-        masks = masks[order]
-        label_image = np.full_like(masks[0],-1, dtype=np.int16)
-        for i, score in enumerate(scores):
-            label_image[masks[i]>0] = i
+        # Find the best (highest score) detection per category
+        best_indices = {}
+        for idx, cat in enumerate(category_id):
+            if cat not in best_indices or scores[idx] > scores[best_indices[cat]]:
+                best_indices[cat] = idx
+
+        # Sort by score descending
+        selected = sorted(best_indices.values(), key=lambda i: scores[i], reverse=True)
+
+        # Prepare label image
+        label_image = np.full_like(masks[0], -1, dtype=np.int16)
+        for label, idx in enumerate(selected):
+            label_image[masks[idx] > 0] = label
 
         result = GenericImgProcAnnotatorResult()
         result.success = True
-        result.class_confidences = scores[0:i+1]
+        result.class_confidences = [scores[idx] for idx in selected]
         result.image = ros_numpy.msgify(Image, label_image, encoding='16SC1')
-        result.class_names = [self.item_dict[i+1] for i in category_id[0:i+1]]
+        result.class_names = [self.item_dict[category_id[idx] + 1] for idx in selected]
 
-        print("\nDetected Objects:\n")
+        print("\nDetected Objects (best per category):\n")
         print(result.class_names)
         print(result.class_confidences)
         
@@ -127,7 +130,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser()
     parser.add_argument("--templates_dir", required=True, type=str, help="Path to the templates folder")
-    parser.add_argument("--confg_threshold", nargs="?", default=0.54, type=float, help="Confidence threshold")
+    parser.add_argument("--confg_threshold", nargs="?", default=0.30, type=float, help="Confidence threshold")
     parser.add_argument("--stability_score_thresh", nargs="?", default=0.97, type=float, help="stability_score_thresh of SAM")
     parser.add_argument("--subset", nargs="?", default=4, type=int, help="uses every nth template")
     args = parser.parse_args()
