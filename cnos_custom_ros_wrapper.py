@@ -127,7 +127,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser()
     parser.add_argument("--templates_dir", required=True, type=str, help="Path to the templates folder")
-    parser.add_argument("--confg_threshold", nargs="?", default=0.5, type=float, help="Confidence threshold")
+    parser.add_argument("--confg_threshold", nargs="?", default=0.54, type=float, help="Confidence threshold")
     parser.add_argument("--stability_score_thresh", nargs="?", default=0.97, type=float, help="stability_score_thresh of SAM")
     parser.add_argument("--subset", nargs="?", default=4, type=int, help="uses every nth template")
     args = parser.parse_args()
