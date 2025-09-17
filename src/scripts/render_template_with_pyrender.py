@@ -78,7 +78,7 @@ def render(cfg: DictConfig) -> None:
         if dataset_name in ["tless"]:
             cad_dir = os.path.join(cfg.data.root_dir, dataset_name, "models/models_cad")
         else:
-            cad_dir = os.path.join(cfg.data.root_dir, dataset_name, "models/models")
+            cad_dir = os.path.join(cfg.data.root_dir, dataset_name, "models")
         cad_paths = []
         output_dirs = []
         object_ids = sorted(
