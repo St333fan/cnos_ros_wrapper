@@ -30,6 +30,11 @@ def run_inference(cfg: DictConfig):
 
     query_dataloader_config = default_query_dataloader_config.copy()
     ref_dataloader_config = default_ref_dataloader_config.copy()
+    
+    # Override template_dir if provided via command line
+    #if hasattr(cfg, 'templates_dir') and cfg.templates_dir:
+    #    ref_dataloader_config.template_dir = cfg.templates_dir
+    #    logging.info(f"Using custom templates directory: {cfg.templates_dir}")
 
     if cfg.dataset_name in ["hb", "tless"]:
         query_dataloader_config.split = "test_primesense"
@@ -53,6 +58,7 @@ def run_inference(cfg: DictConfig):
     if cfg.model.onboarding_config.rendering_type == "pyrender":
         ref_dataloader_config.template_dir += f"templates_pyrender/{cfg.dataset_name}"
         ref_dataset = instantiate(ref_dataloader_config)
+        #ref_dataset.root_dir = query_dataloader_config.root_dir  # Manually set the attribute
     elif cfg.model.onboarding_config.rendering_type == "pbr":
         logging.info("Using BlenderProc for reference images")
         ref_dataloader_config._target_ = "src.dataloader.bop_pbr.BOPTemplatePBR"

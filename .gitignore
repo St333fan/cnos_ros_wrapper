@@ -175,3 +175,5 @@ datasets/
 torch_cache/
 custom_data/
 templates_pyrender/
+Data/
+lightning_logs/
