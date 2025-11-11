@@ -3,9 +3,10 @@ defaults:
   - machine: local
   - callback: base 
   - data: bop
-  - model: cnos_fast #  cnos cnos_fast
+  - model: cnos #  cnos cnos_fast
   - _self_
 
 save_dir: ${machine.root_dir}/results/${name_exp}
 name_exp: cnos_exps
-dataset_name: "manibot" #ycbv
+dataset_name: "ycbv_real_subset" # manibot  ycbv
+templates_dir: /code/Data/BOP/

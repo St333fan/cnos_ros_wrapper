@@ -1,4 +1,7 @@
 # Start with docker-compose from DOPE
+
+https://github.com/St333fan/DOPE 
+
 ```bash
 # download weights
 python -m src.scripts.download_fastsam
@@ -11,16 +14,13 @@ DOPE/datasets/bop23_challenge/pretrained/segment-anything/sam_vit_h_4b8939.pth
 DOPE
 ├── datasets
 │   ├── templates
-│   └── manibot
-│          └── models
-│             └── models
-│                  ├── obj_000001.ply
-│                  └── obj_000001.png
+│   └── manibot # datasetname
+│       └── models
+│           ├── obj_000001.ply
+│           └── obj_000001.png
 
-# before render open script and add <dataset_name>, rendering in Docker!
+# render dataset
 python -m src.scripts.render_template_with_pyrender data.root_dir=/code/datasets dataset_name=["manibot"]
-# or more/other
-python -m src.scripts.render_template_with_pyrender data.root_dir=/code/datasets dataset_name=["ycbv", "manibot"]
 ```
 After rendering
 ```bash
@@ -29,7 +29,7 @@ DOPE
 │   ├── manibot
 │   │   └── models
 │   │       ├── obj_000001.ply
-│   │       └── texture.png
+│   │       └── obj_000001.png
 │   ├── templates_pyrender
 │   │   └── manibot
 │   │       ├── obj_000001
@@ -37,8 +37,8 @@ DOPE
 │   │       │   ├── 000001.png
 │   │       │   ├── 000002.png
 
-# copy templates_pyrender to submodule Path
-/DOPE/object_detectors/cnos_sasha/templates_pyrender
+# DOPE: in docker templates are found under 
+/code/datasets/templates_pyrender
 
 # adapt config, cnos(sam), cnos_fast(fastsam), dataset_name: "ycbv" or other
 object_detectors/cnos_sasha/configs/run_inference.yaml

@@ -48,6 +48,17 @@ item_dict = {
     2: '002_max_house',
 }
 
+item_dict = {
+    1: '006_mustard_bottle', 
+    2: '010_potted_meat_can',
+    3: '024_bowl',
+    4: '003_cracker_box',
+    5: '002_master_chef_can',
+    6: '009_gelatin_box',
+    7: '040_large_marker',
+    8: '052_extra_large_clamp',
+}
+
 class CNOS_ROS:
     def __init__(self, templates_dir, stability_score_thresh, conf_threshold, subset, item_dict=item_dict):
         print(f"Initializing CNOS Object Detector with params: {templates_dir=}, {stability_score_thresh=}, {conf_threshold=}, {subset=}")
@@ -61,10 +72,10 @@ class CNOS_ROS:
         self.item_dict = item_dict
 
         rospy.init_node("cnos_custom_detection")
-        self.server = actionlib.SimpleActionServer('/object_detector/cnos_custom',
+        self.server = actionlib.SimpleActionServer('/object_detector/sam6dism',
                                                     GenericImgProcAnnotatorAction,
                                                     execute_cb=self.detect_objects,
-                                                    auto_start=False)
+                                                    auto_start=False) # /object_detector/cnos_custom'
         self.server.start()
 
         print("Object detection with CNOS is ready.")
@@ -129,10 +140,10 @@ class CNOS_ROS:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--templates_dir", required=True, type=str, help="Path to the templates folder")
-    parser.add_argument("--confg_threshold", nargs="?", default=0.30, type=float, help="Confidence threshold")
+    parser.add_argument("--templates_dir", required=True, default="/code/datasets/templates_pyrender", type=str, help="Path to the templates folder")
+    parser.add_argument("--conf_threshold", nargs="?", default=0.30, type=float, help="Confidence threshold")
     parser.add_argument("--stability_score_thresh", nargs="?", default=0.97, type=float, help="stability_score_thresh of SAM")
-    parser.add_argument("--subset", nargs="?", default=4, type=int, help="uses every nth template")
+    parser.add_argument("--subset", nargs="?", default=16, type=int, help="uses every nth template")
     args = parser.parse_args()
-    CNOS_ROS(args.templates_dir, args.stability_score_thresh, args.confg_threshold, args.subset)
+    CNOS_ROS(args.templates_dir, args.stability_score_thresh, args.conf_threshold, args.subset)
     rospy.spin()
