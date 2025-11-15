@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import shutil
 from functools import partial
+import gc
 
 import numpy as np
 from PIL import Image
@@ -141,6 +142,12 @@ class CNOSDetector:
     )
 
     detections.to_numpy()
+    
+    # Clear GPU cache
+    del query_decriptors
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    
     masks = []
     if output_dir is not None:
       output_dir = Path(output_dir)
@@ -163,6 +170,11 @@ class CNOSDetector:
     results = {"obj_ids": detections.object_ids,
                 "masks": np.array(masks),
                 "scores": detections.scores}
+    
+    # Aggressive GPU memory cleanup
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    gc.collect()
     
     return results
 
@@ -199,5 +211,5 @@ if __name__ == "__main__":
   detector = CNOSDetector(Path(args.templates_dir))
   
   results = detector.run_inference(args.image_path, args.output_dir)
-  
+
 

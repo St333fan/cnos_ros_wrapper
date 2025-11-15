@@ -8,5 +8,5 @@ defaults:
 
 save_dir: ${machine.root_dir}/results/${name_exp}
 name_exp: cnos_exps
-dataset_name: "ycbv_real_subset" # manibot  ycbv
+dataset_name: "manibot_2dgs" # manibot  ycbv manibot_svraster  manibot_2dgs  ycbv_real_subset_svraster  ycbv_real_subset_2dgs
 templates_dir: /code/Data/BOP/
