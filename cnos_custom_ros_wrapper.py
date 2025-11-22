@@ -71,6 +71,17 @@ item_dict = {
     9: "109_toothbrush"
 }
 
+item_dict = {
+    1: '006_mustard_bottle', 
+    2: '010_potted_meat_can',
+    3: "101_soap",
+    4: "102_ahorn_sirup",
+    5: "105_hand_cream",
+    6: '009_gelatin_box',
+    7: "107_razors",
+    8: "109_toothbrush"
+}
+
 class CNOS_ROS:
     def __init__(self, templates_dir, stability_score_thresh, conf_threshold, subset, item_dict=item_dict):
         print(f"Initializing CNOS Object Detector with params: {templates_dir=}, {stability_score_thresh=}, {conf_threshold=}, {subset=}")
